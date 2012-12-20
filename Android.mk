@@ -18,11 +18,11 @@ ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
 
 common_msm_dirs := librpc dspcrashd
 
-ifneq ($(TARGET_PROVIDES_LIBAUDIO),true)
-	common_msm_dirs += libaudio
-endif
-
 msm7k_dirs := $(common_msm_dirs) boot
+
+ifneq ($(TARGET_PROVIDES_LIBAUDIO),true)
+        msm7k_dirs += libaudio
+endif
 
 ifeq ($(TARGET_BOARD_PLATFORM),msm7x27)
 	include $(call all-named-subdir-makefiles,$(msm7k_dirs))
