@@ -16,7 +16,13 @@
 
 ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
 
-common_msm_dirs := librpc dspcrashd
+LIBRPC := librpc
+ifeq ($(BOARD_USES_QCOM_LIBRPC),true)
+    LIBRPC := librpc-qcom
+endif
+
+
+common_msm_dirs := $(LIBRPC) dspcrashd
 
 msm7k_dirs := $(common_msm_dirs) boot
 
