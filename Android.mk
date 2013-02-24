@@ -16,7 +16,13 @@
 
 ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
 
-common_msm_dirs := librpc dspcrashd libstagefrighthw
+LIBRPC := librpc
+
+ifeq ($(BOARD_USES_QCOM_LIBRPC),true)
+    LIBRPC := librpc-qcom
+endif
+
+common_msm_dirs := $(LIBRPC) dspcrashd libstagefrighthw
 
 ifneq ($(TARGET_PROVIDES_LIBLIGHTS),true)
     common_msm_dirs += liblights
