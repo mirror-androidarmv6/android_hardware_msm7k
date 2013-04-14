@@ -311,10 +311,12 @@ status_t AudioPolicyManager::checkAndSetVolume(int stream, int index, audio_io_h
     }
 #ifdef HAVE_FM_RADIO
     else if ((stream == AudioSystem::FM) && (mAvailableOutputDevices & AudioSystem::DEVICE_OUT_FM)) {
-        float fmVolume = -1.0;
-        fmVolume = (float)index/(float)mStreams[stream].mIndexMax;
-        if (fmVolume >= 0 && output == mHardwareOutput) {
-            mpClientInterface->setFmVolume(fmVolume, delayMs);
+        float fmVolume = (float)index/(float)mStreams[stream].mIndexMax;
+        if (fmVolume >= 0) {
+            if (output == mPrimaryOutput)
+                mpClientInterface->setFmVolume(fmVolume, delayMs);
+            else if(mHasA2dp && output == getA2dpOutput())
+                mpClientInterface->setStreamVolume((AudioSystem::stream_type)stream, volume, output, delayMs);
         }
     }
 #endif
