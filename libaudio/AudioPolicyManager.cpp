@@ -236,7 +236,6 @@ audio_devices_t AudioPolicyManager::getDeviceForStrategy(routing_strategy strate
 
 status_t AudioPolicyManager::checkAndSetVolume(int stream, int index, audio_io_handle_t output, audio_devices_t device, int delayMs, bool force)
 {
-
     // do not change actual stream volume if the stream is muted
     if (mOutputs.valueFor(output)->mMuteCount[stream] != 0) {
         ALOGV("checkAndSetVolume() stream %d muted count %d", stream, mOutputs.valueFor(output)->mMuteCount[stream]);
@@ -258,11 +257,12 @@ status_t AudioPolicyManager::checkAndSetVolume(int stream, int index, audio_io_h
     if (volume != mOutputs.valueFor(output)->mCurVolume[stream] ||
         (stream == AudioSystem::VOICE_CALL) ||
 #ifdef HAVE_FM_RADIO
-	    (stream == AudioSystem::FM) ||
+        (stream == AudioSystem::FM) ||
 #endif
-	force) {
+        force) {
         mOutputs.valueFor(output)->mCurVolume[stream] = volume;
         ALOGV("setStreamVolume() for output %d stream %d, volume %f, delay %d", output, stream, volume, delayMs);
+
         if (stream == AudioSystem::VOICE_CALL ||
             stream == AudioSystem::DTMF ||
             stream == AudioSystem::BLUETOOTH_SCO) {
@@ -270,39 +270,31 @@ status_t AudioPolicyManager::checkAndSetVolume(int stream, int index, audio_io_h
             // 1% corresponds roughly to first step in VOICE_CALL stream volume setting (see AudioService.java)
             volume = 0.01 + 0.99 * volume;
         }
+
         mpClientInterface->setStreamVolume((AudioSystem::stream_type)stream, volume, output, delayMs);
     }
 
     if (stream == AudioSystem::VOICE_CALL ||
         stream == AudioSystem::BLUETOOTH_SCO) {
-        float voiceVolume;
         // Force voice volume to max for bluetooth SCO as volume is managed by the headset
-        if (stream == AudioSystem::VOICE_CALL) {
-            voiceVolume = (float)index/(float)mStreams[stream].mIndexMax;
-        } else {
-            voiceVolume = 1.0;
-        }
-        
-        if ((voiceVolume >= 0 && output == mPrimaryOutput)
-#ifdef HAVE_FM_RADIO
-          && (!(mAvailableOutputDevices & AudioSystem::DEVICE_OUT_FM))
-#endif
-        ) {
+        float voiceVolume = (stream == AudioSystem::VOICE_CALL) ? ((float)index/(float)mStreams[stream].mIndexMax) : 1.0;
+        if (voiceVolume != mLastVoiceVolume && output == mPrimaryOutput) {
             mpClientInterface->setVoiceVolume(voiceVolume, delayMs);
             mLastVoiceVolume = voiceVolume;
         }
     }
 #ifdef HAVE_FM_RADIO
-    else if ((stream == AudioSystem::FM) && (mAvailableOutputDevices & AudioSystem::DEVICE_OUT_FM)) {
-        float fmVolume = (float)index/(float)mStreams[stream].mIndexMax;
+    else if ((stream == AudioSystem::FM) && (mAvailableOutputDevices & AUDIO_DEVICE_OUT_FM)) {
+        float fmVolume = computeVolume(stream, index, output, device);
         if (fmVolume >= 0) {
-            if (output == mPrimaryOutput)
-                mpClientInterface->setFmVolume(fmVolume, delayMs);
-            else if(mHasA2dp && output == getA2dpOutput())
-                mpClientInterface->setStreamVolume((AudioSystem::stream_type)stream, volume, output, delayMs);
+            //if (output == mPrimaryOutput)
+            //    mpClientInterface->setFmVolume(fmVolume, delayMs);
+            //else if(mHasA2dp && output == getA2dpOutput())
+            //    mpClientInterface->setStreamVolume((AudioSystem::stream_type)stream, volume, output, delayMs);
         }
     }
 #endif
+
     return NO_ERROR;
 }
 }; // namespace android_audio_legacy
