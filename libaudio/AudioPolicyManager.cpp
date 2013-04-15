@@ -173,24 +173,16 @@ audio_devices_t AudioPolicyManager::getDeviceForStrategy(routing_strategy strate
         // FALL THROUGH
 
     case STRATEGY_MEDIA: {
-#ifdef HAVE_FM_RADIO
-        uint32_t device2 = 0;
-        if (mForceUse[AudioSystem::FOR_MEDIA] == AudioSystem::FORCE_SPEAKER) {
-            device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_SPEAKER;
-        }
-        if (device2 == 0) {
-            device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_AUX_DIGITAL;
-        }
-#else
-        uint32_t device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_AUX_DIGITAL;
-#endif
-
+        switch (mForceUse[AudioSystem::FOR_MEDIA]) {
+          case AudioSystem::FORCE_SPEAKER:
+            device = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_SPEAKER;
+            break;
+          default:
+          {
+            uint32_t device2 = 0;
 #ifdef WITH_A2DP
-        if (mHasA2dp && (mForceUse[AudioSystem::FOR_MEDIA] != AudioSystem::FORCE_NO_BT_A2DP) &&
-                (getA2dpOutput() != 0) && !mA2dpSuspended) {
-            if (strategy == STRATEGY_SONIFICATION && !a2dpUsedForSonification()) {
-                break;
-            }
+        if ((mHasA2dp) && (getA2dpOutput() != 0) && !mA2dpSuspended &&
+                (strategy == STRATEGY_MEDIA || a2dpUsedForSonification())) {
             if (device2 == 0) {
                 device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_BLUETOOTH_A2DP;
             }
@@ -202,36 +194,27 @@ audio_devices_t AudioPolicyManager::getDeviceForStrategy(routing_strategy strate
             }
         }
 #endif
-        if (device2 == 0) {
-            device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_WIRED_HEADPHONE;
-        }
-        if (device2 == 0) {
-            device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_WIRED_HEADSET;
-        }
-        if (device2 == 0) {
-            device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_SPEAKER;
-        }
-        if (device2 == 0) {
-            device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_EARPIECE;
-        }
+            if (device2 == 0) {
+                device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_WIRED_HEADPHONE;
+            }
+            if (device2 == 0) {
+                device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_WIRED_HEADSET;
+            }
+            if (device2 == 0) {
+                device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_SPEAKER;
+            }
+            if (device2 == 0) {
+                device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_EARPIECE;
+            }
 
-        // device is DEVICE_OUT_SPEAKER if we come from case STRATEGY_SONIFICATION or
-        // STRATEGY_ENFORCED_AUDIBLE, 0 otherwise
-        device = device ? device : device2;
-        if (device == 0) {
-            ALOGE("getDeviceForStrategy() speaker device not found");
-        }
+            // device is DEVICE_OUT_SPEAKER if we come from case STRATEGY_SONIFICATION or
+            // STRATEGY_ENFORCED_AUDIBLE, 0 otherwise
+            device |= device2;
+          }
+          break;
+       }
+       //END: switch (mForceUse[AudioSystem::FOR_MEDIA])
 
-#ifdef HAVE_FM_RADIO
-        if (mAvailableOutputDevices & AudioSystem::DEVICE_OUT_FM) {
-            device |= AudioSystem::DEVICE_OUT_FM;
-            
-            if (device == (AudioSystem::DEVICE_OUT_SPEAKER | AudioSystem::DEVICE_OUT_WIRED_HEADSET | AudioSystem::DEVICE_OUT_FM))
-                device = AudioSystem::DEVICE_OUT_SPEAKER;
-            else if(device & AudioSystem::DEVICE_OUT_WIRED_HEADSET)
-                 device &= ~(device & AudioSystem::DEVICE_OUT_WIRED_HEADSET);
-        }
-#endif
         // Do not play media stream if in call and the requested device would change the hardware
         // output routing
         if (isInCall() &&
