@@ -43,6 +43,8 @@
 #define LOG_SND_RPC 0  // Set to 1 to LOG sound RPC's
 
 //#define COMBO_DEVICE_SUPPORTED // Headset speaker combo device supported on this target
+#undef COMBO_DEVICE_SUPPORTED
+
 #ifdef HAVE_FM_RADIO
 #define FM_ON_KEY "fm_on"
 #define FM_OFF_KEY "fm_off"
